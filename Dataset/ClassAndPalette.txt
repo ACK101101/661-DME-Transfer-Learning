@@ -1,0 +1,13 @@
+classes = ('background', 'object')
+palette = [[255,0,0], [0,0,255]]
+
+from mmseg.registry import DATASETS
+from mmseg.datasets import BaseSegDataset
+
+
+@DATASETS.register_module()
+class StanfordBackgroundDataset(BaseSegDataset):
+  METAINFO = dict(classes = classes, palette = palette)
+  def __init__(self, **kwargs):
+    super().__init__(img_suffix='.png', seg_map_suffix='.png', **kwargs)
+    
