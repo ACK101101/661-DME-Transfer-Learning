@@ -14,12 +14,19 @@ import matplotlib.pyplot as plt
 from mmengine.runner import Runner
 from mmseg.apis import init_model, inference_model, show_result_pyplot
 from mmengine import Config
+from PIL import Image
+import os.path as osp
+import numpy as np
 from mmseg.registry import DATASETS
 from mmseg.datasets import BaseSegDataset
 
 classes = ('background', 'object')
+class_weights = [.1, 1.0]
 palette = [[255, 0, 0], [0, 0, 255]]
 
+data_root = 'Dataset'
+img_dir = 'images'
+ann_dir = 'labels'
 
 @DATASETS.register_module()
 class OctDmeDataset(BaseSegDataset):
@@ -30,7 +37,26 @@ class OctDmeDataset(BaseSegDataset):
 
 
 if __name__ == '__main__':
+    # mean = 0
+    # std = 0
+    # total = 0
+    # for file in mmengine.scandir(osp.join(data_root, img_dir), suffix='.png'):
+    #     img = np.array(Image.open(osp.join(data_root, img_dir, file)))
+    #     mean += np.mean(img)
+    #     std += np.std(img)
+    #     total += 1
+    # mean /= total
+    # std /= total
+    # print('mean ', mean)
+    # print('std ', std)
+    # mean 46.600209178160135
+    # std 54.68139636232457
+
     img = mmcv.imread('./Dataset/images/10_32.png')
+    plt.imshow(mmcv.bgr2rgb(img))
+    plt.show()
+
+    img = mmcv.imread('./Dataset/labels/10_32.png')
     plt.imshow(mmcv.bgr2rgb(img))
     plt.show()
 
@@ -45,9 +71,25 @@ if __name__ == '__main__':
     cfg.norm_cfg = dict(type='BN', requires_grad=True)
     cfg.crop_size = (256, 256)
     cfg.model.data_preprocessor.size = cfg.crop_size
+    cfg.model.data_preprocessor.mean = [
+        46.6002, 46.6002, 46.6002
+    ]
+    cfg.model.data_preprocessor.std = [
+        54.681, 54.681, 54.681
+    ]
+    cfg.model.data_preprocessor.bgr_to_rgb = False
     cfg.model.backbone.norm_cfg = cfg.norm_cfg
     cfg.model.decode_head.norm_cfg = cfg.norm_cfg
     cfg.model.auxiliary_head.norm_cfg = cfg.norm_cfg
+
+    # Modify loss
+    cfg.model.auxiliary_head.out_channels = 1
+    cfg.model.auxiliary_head.loss_decode.use_sigmoid = True
+    cfg.model.decode_head.out_channels = 1
+    cfg.model.decode_head.loss_decode.use_sigmoid = True
+    # cfg.model.auxiliary_head.loss_decode['class_weight'] = class_weights
+    # cfg.model.decode_head.loss_decode['class_weight'] = class_weights
+
     # modify num classes of the model in decode/auxiliary head
     # cfg.model.decode_head.num_classes = 2 # already 2
     # cfg.model.auxiliary_head.num_classes = 2
@@ -98,10 +140,10 @@ if __name__ == '__main__':
     # Set up working dir to save files and logs.
     cfg.work_dir = './work_dirs/unet_fcn_stare'
 
-    cfg.train_cfg.max_iters = 200
-    cfg.train_cfg.val_interval = 200
-    cfg.default_hooks.logger.interval = 10
-    cfg.default_hooks.checkpoint.interval = 200
+    cfg.train_cfg.max_iters = 500
+    cfg.train_cfg.val_interval = 500
+    cfg.default_hooks.logger.interval = 50
+    cfg.default_hooks.checkpoint.interval = 500
 
     # Set seed to facilitate reproducing the result
     cfg['randomness'] = dict(seed=0)
@@ -109,10 +151,8 @@ if __name__ == '__main__':
     # Remove times from dataset loader
     cfg.val_evaluator.iou_metrics = ['mIoU']
 
-
-
     # Let's have a look at the final config used for training
-    print(f'Config:\n{cfg.pretty_text}')
+    # print(f'Config:\n{cfg.pretty_text}')
 
     runner = Runner.from_cfg(cfg)
 
@@ -123,8 +163,10 @@ if __name__ == '__main__':
     checkpoint_path = './work_dirs/unet_fcn_stare/iter_200.pth'
     model = init_model(cfg, checkpoint_path, 'cuda:0')
 
-    img = mmcv.imread('./Dataset/images/04_46.png')
+    img = mmcv.imread('./Dataset/images/10_32.png')
     result = inference_model(model, img)
     plt.figure(figsize=(8, 6))
     vis_result = show_result_pyplot(model, img, result)
     plt.imshow(mmcv.bgr2rgb(vis_result))
+
+    exit(0)
