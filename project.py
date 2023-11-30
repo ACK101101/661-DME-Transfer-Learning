@@ -42,14 +42,14 @@ if __name__ == '__main__':
     # total = 0
     # for file in mmengine.scandir(osp.join(data_root, img_dir), suffix='.png'):
     #     img = np.array(Image.open(osp.join(data_root, img_dir, file)))
-    #     mean = np.mean(img)
+    #     mean += np.mean(img)
     #     std += np.std(img)
     #     total += 1
     # mean /= total
     # std /= total
     # print('mean ', mean)
     # print('std ', std)
-    # mean 0.5191644901637341
+    # mean 46.600209178160135
     # std 54.68139636232457
 
     img = mmcv.imread('./Dataset/images/10_32.png')
@@ -72,11 +72,12 @@ if __name__ == '__main__':
     cfg.crop_size = (256, 256)
     cfg.model.data_preprocessor.size = cfg.crop_size
     cfg.model.data_preprocessor.mean = [
-        0.519164, 0.519164, 0.519164
+        46.6002, 46.6002, 46.6002
     ]
     cfg.model.data_preprocessor.std = [
         54.681, 54.681, 54.681
     ]
+    cfg.model.data_preprocessor.bgr_to_rgb = False
     cfg.model.backbone.norm_cfg = cfg.norm_cfg
     cfg.model.decode_head.norm_cfg = cfg.norm_cfg
     cfg.model.auxiliary_head.norm_cfg = cfg.norm_cfg
@@ -151,7 +152,7 @@ if __name__ == '__main__':
     cfg.val_evaluator.iou_metrics = ['mIoU']
 
     # Let's have a look at the final config used for training
-    print(f'Config:\n{cfg.pretty_text}')
+    # print(f'Config:\n{cfg.pretty_text}')
 
     runner = Runner.from_cfg(cfg)
 
