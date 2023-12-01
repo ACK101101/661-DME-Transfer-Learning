@@ -20,9 +20,9 @@ import numpy as np
 from mmseg.registry import DATASETS
 from mmseg.datasets import BaseSegDataset
 
-classes = ('background', 'object')
+classes = ('background', 'fluid')
 class_weights = [.1, 1.0]
-palette = [[255, 0, 0], [0, 0, 255]]
+palette = [[0, 0, 255], [255, 0, 0]]
 
 data_root = 'Dataset'
 img_dir = 'images'
@@ -51,12 +51,12 @@ if __name__ == '__main__':
     # print('std ', std)
     # mean 46.600209178160135
     # std 54.68139636232457
-
-    img = mmcv.imread('./Dataset/images/10_32.png')
+    test_img = '09_10.png'
+    img = mmcv.imread('./Dataset/images/'+test_img)
     plt.imshow(mmcv.bgr2rgb(img))
     plt.show()
 
-    img = mmcv.imread('./Dataset/labels/10_32.png')
+    img = mmcv.imread('./Dataset/labels/'+test_img)
     plt.imshow(mmcv.bgr2rgb(img))
     plt.show()
 
@@ -83,12 +83,19 @@ if __name__ == '__main__':
     cfg.model.auxiliary_head.norm_cfg = cfg.norm_cfg
 
     # Modify loss
-    cfg.model.auxiliary_head.out_channels = 1
-    cfg.model.auxiliary_head.loss_decode.use_sigmoid = True
-    cfg.model.decode_head.out_channels = 1
-    cfg.model.decode_head.loss_decode.use_sigmoid = True
+    # cfg.model.auxiliary_head.out_channels = 1
+    # cfg.model.auxiliary_head.loss_decode.use_sigmoid = True
+    # cfg.model.decode_head.out_channels = 1
+    # cfg.model.decode_head.loss_decode.use_sigmoid = True
     # cfg.model.auxiliary_head.loss_decode['class_weight'] = class_weights
     # cfg.model.decode_head.loss_decode['class_weight'] = class_weights
+
+    cfg.model.auxiliary_head.loss_decode.type = 'DiceLoss'
+    cfg.model.auxiliary_head.loss_decode.loss_name = 'loss_dice'
+    cfg.model.auxiliary_head.loss_decode.loss_weight = 1.0
+    cfg.model.decode_head.loss_decode.type = 'DiceLoss'
+    cfg.model.decode_head.loss_decode.loss_name = 'loss_dice'
+    cfg.model.decode_head.loss_decode.loss_weight = 1.0
 
     # modify num classes of the model in decode/auxiliary head
     # cfg.model.decode_head.num_classes = 2 # already 2
@@ -103,7 +110,7 @@ if __name__ == '__main__':
     cfg.train_pipeline = [
         dict(type='LoadImageFromFile'),
         dict(type='LoadAnnotations'),
-        dict(type='RandomResize', scale=(768, 496), ratio_range=(0.5, 2.0), keep_ratio=True),
+        # dict(type='RandomResize', scale=(768, 496), ratio_range=(0.5, 2.0), keep_ratio=True),
         dict(type='RandomCrop', crop_size=cfg.crop_size, cat_max_ratio=0.75),
         dict(type='RandomFlip', prob=0.5),
         dict(type='PackSegInputs')
@@ -140,10 +147,10 @@ if __name__ == '__main__':
     # Set up working dir to save files and logs.
     cfg.work_dir = './work_dirs/unet_fcn_stare'
 
-    cfg.train_cfg.max_iters = 500
-    cfg.train_cfg.val_interval = 500
-    cfg.default_hooks.logger.interval = 50
-    cfg.default_hooks.checkpoint.interval = 500
+    cfg.train_cfg.max_iters = 10000
+    cfg.train_cfg.val_interval = 2000
+    cfg.default_hooks.logger.interval = 1000
+    cfg.default_hooks.checkpoint.interval = 2000
 
     # Set seed to facilitate reproducing the result
     cfg['randomness'] = dict(seed=0)
@@ -156,17 +163,19 @@ if __name__ == '__main__':
 
     runner = Runner.from_cfg(cfg)
 
-    runner.val()
+    # runner.val()
 
     runner.train()
 
-    checkpoint_path = './work_dirs/unet_fcn_stare/iter_200.pth'
+    checkpoint_path = './work_dirs/unet_fcn_stare/iter_10000.pth'
+
     model = init_model(cfg, checkpoint_path, 'cuda:0')
 
-    img = mmcv.imread('./Dataset/images/10_32.png')
+    img = mmcv.imread('./Dataset/images/'+test_img)
     result = inference_model(model, img)
     plt.figure(figsize=(8, 6))
     vis_result = show_result_pyplot(model, img, result)
     plt.imshow(mmcv.bgr2rgb(vis_result))
+
 
     exit(0)
