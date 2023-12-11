@@ -63,6 +63,7 @@ if __name__ == '__main__':
     data_root = 'Dataset'
     img_dir = 'images'
     ann_dir = 'labels'
+    work_dir = './work_dirs/unet_fcn_stare_stare'
 
     cfg = Config.fromfile('configs/unet/unet-s5-d16_fcn_4xb4-40k_stare-128x128.py')
     print(f'Config:\n{cfg.pretty_text}')
@@ -96,6 +97,8 @@ if __name__ == '__main__':
     cfg.model.decode_head.loss_decode.type = 'DiceLoss'
     cfg.model.decode_head.loss_decode.loss_name = 'loss_dice'
     cfg.model.decode_head.loss_decode.loss_weight = 1.0
+    # cfg.optimizer.lr=0.005
+    # cfg.optim_wrapper.optimizer.lr=0.005
 
     # modify num classes of the model in decode/auxiliary head
     # cfg.model.decode_head.num_classes = 2 # already 2
@@ -105,7 +108,7 @@ if __name__ == '__main__':
     cfg.dataset_type = 'OctDmeDataset'
     cfg.data_root = data_root
 
-    cfg.train_dataloader.batch_size = 1
+    cfg.train_dataloader.batch_size = 4
 
     cfg.train_pipeline = [
         dict(type='LoadImageFromFile'),
@@ -145,12 +148,12 @@ if __name__ == '__main__':
     cfg.load_from = 'checkpoints/fcn_unet_s5-d16_128x128_40k_stare_20201223_191051-7d77e78b.pth'
 
     # Set up working dir to save files and logs.
-    cfg.work_dir = './work_dirs/unet_fcn_stare'
+    cfg.work_dir = work_dir
 
-    cfg.train_cfg.max_iters = 10000
-    cfg.train_cfg.val_interval = 2000
-    cfg.default_hooks.logger.interval = 1000
-    cfg.default_hooks.checkpoint.interval = 2000
+    cfg.train_cfg.max_iters = 200
+    cfg.train_cfg.val_interval = 10
+    cfg.default_hooks.logger.interval = 10
+    cfg.default_hooks.checkpoint.interval = 100
 
     # Set seed to facilitate reproducing the result
     cfg['randomness'] = dict(seed=0)
@@ -167,7 +170,7 @@ if __name__ == '__main__':
 
     runner.train()
 
-    checkpoint_path = './work_dirs/unet_fcn_stare/iter_10000.pth'
+    checkpoint_path = work_dir + '/iter_200.pth'
 
     model = init_model(cfg, checkpoint_path, 'cuda:0')
 
